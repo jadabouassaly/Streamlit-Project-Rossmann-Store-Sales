@@ -9,16 +9,21 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from PIL import Image
 
+@st.cache(allow_output_mutation=True)
+def load_data(path):
+    df=pd.read_csv(path)
+    return df
+
 url1 = 'https://drive.google.com/file/d/1XMaIVbV2l1WUKNQPvP7J1X1sbT1zRtY8/view?usp=sharing'
 path1 = 'https://drive.google.com/uc?export=download&id='+url1.split('/')[-2]
-df_train=pd.read_csv(path1)
+df_train=load_data(path1)
 
 url2 = 'https://drive.google.com/file/d/1QcnGtZKHdhTjE-oBjvVeRh22aNdO35Nk/view?usp=sharing'
 path2 = 'https://drive.google.com/uc?export=download&id='+url2.split('/')[-2]
-df_store=pd.read_csv(path2)
+df_store=load_data(path2)
 
-df_train['Year'] = pd.DatetimeIndex(df_train['Date']). year
-df_train['Month'] = pd.DatetimeIndex(df_train['Date']). month
+df_train['Year'] = pd.DatetimeIndex(df_train['Date']).year
+df_train['Month'] = pd.DatetimeIndex(df_train['Date']).month
 df_train['Quarter']=pd.DatetimeIndex(df_train['Date']).quarter
 df_train=df_train[df_train['Year']!=2015]
 df_train=df_train.join(df_store.set_index('Store'),on='Store')
@@ -33,7 +38,7 @@ df_train['DayOfWeek'] = df_train['DayOfWeek'].apply(lambda x: calendar.day_abbr[
 #loading the datafields
 url3 = 'https://drive.google.com/file/d/12zSselmNJapyFlv6anUpB7OYoonlOe7i/view?usp=sharing'
 path3 = 'https://drive.google.com/uc?export=download&id='+url3.split('/')[-2]
-df_datafields=pd.read_csv(path3)
+df_datafields=load_data(path3)
 
 #writing on the sidebar
 url = 'https://drive.google.com/file/d/1qcwhWj62I_t7qApTgIzsbZ_ftLsOHq05/view?usp=sharing'
@@ -258,11 +263,11 @@ if option == 'Data Prediction':
     expander.write("This Section provides sales predictions depending on the user input. Please refer to the manual for extra information.")
     url1 = 'https://drive.google.com/file/d/1XMaIVbV2l1WUKNQPvP7J1X1sbT1zRtY8/view?usp=sharing'
     path1 = 'https://drive.google.com/uc?export=download&id='+url1.split('/')[-2]
-    df_train=pd.read_csv(path1)
+    df_train=load_data(path1)
 
     url2 = 'https://drive.google.com/file/d/1QcnGtZKHdhTjE-oBjvVeRh22aNdO35Nk/view?usp=sharing'
     path2 = 'https://drive.google.com/uc?export=download&id='+url2.split('/')[-2]
-    df_store=pd.read_csv(path2)
+    df_store=load_data(path2)
 
     df_train['Year'] = pd.DatetimeIndex(df_train['Date']). year
     df_train['Month'] = pd.DatetimeIndex(df_train['Date']). month
