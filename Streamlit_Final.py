@@ -8,7 +8,7 @@ import calendar
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from PIL import Image
-
+import statsmodels
 
 #function to read the data with caching
 @st.cache(allow_output_mutation=True)
