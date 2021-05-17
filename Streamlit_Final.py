@@ -8,7 +8,7 @@ import calendar
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from PIL import Image
-import statsmodels
+
 
 #function to read the data with caching
 @st.cache(allow_output_mutation=True)
@@ -26,20 +26,25 @@ url2 = 'https://drive.google.com/file/d/1QcnGtZKHdhTjE-oBjvVeRh22aNdO35Nk/view?u
 path2 = 'https://drive.google.com/uc?export=download&id='+url2.split('/')[-2]
 df_store=load_data(path2)
 
-df_train['Year'] = pd.DatetimeIndex(df_train['Date']).year #retreive the year from the date
-df_train['Month'] = pd.DatetimeIndex(df_train['Date']).month #retreive the month from the date
-df_train['Quarter']=pd.DatetimeIndex(df_train['Date']).quarter #retreive the quarter from the date
-df_train=df_train[df_train['Year']!=2015] #drop year 2015 since it is incomplete
-df_train=df_train.join(df_store.set_index('Store'),on='Store') #join both datasets on "store"
-df_train['Store']=df_train['Store'].astype(str) #convert store to string
-df_train['Quarter']=df_train['Quarter'].astype(str) #convert quarter to string
-df_train['Month'] = df_train['Month'].apply(lambda x: calendar.month_abbr[x]) #convert the month number to its abbreviation
 
-#converting DayOfWeek from number to day name
-df_train['DayOfWeek'] = df_train['DayOfWeek'] -1 #days should be from 0 to 6 in order to use day_abbr method
-df_train['DayOfWeek'] = df_train['DayOfWeek'].apply(lambda x: calendar.day_abbr[x])
+@st.cache
+def transform(df,df1):
+    df['Year'] = pd.DatetimeIndex(df['Date']).year #retreive the year from the date
+    df['Month'] = pd.DatetimeIndex(df['Date']).month #retreive the month from the date
+    df['Quarter']=pd.DatetimeIndex(df['Date']).quarter #retreive the quarter from the date
+    df=df[df['Year']!=2015] #drop year 2015 since it is incomplete
+    df=df.join(df1.set_index('Store'),on='Store') #join both datasets on "store"
+    df['Store']=df['Store'].astype(str) #convert store to string
+    df['Quarter']=df['Quarter'].astype(str) #convert quarter to string
+    df['Month'] = df['Month'].apply(lambda x: calendar.month_abbr[x]) #convert the month number to its abbreviation
 
-#loading the datafields (table describing each field in the main dataset)
+    #converting DayOfWeek from number to day name
+    df['DayOfWeek'] = df['DayOfWeek'] -1 #days should be from 0 to 6 in order to use day_abbr method
+    df['DayOfWeek'] = df['DayOfWeek'].apply(lambda x: calendar.day_abbr[x])
+    return df
+
+df_train=transform(df_train,df_store)
+
 url3 = 'https://drive.google.com/file/d/12zSselmNJapyFlv6anUpB7OYoonlOe7i/view?usp=sharing'
 path3 = 'https://drive.google.com/uc?export=download&id='+url3.split('/')[-2]
 df_datafields=load_data(path3)
@@ -101,17 +106,21 @@ if option == 'Home':
     if(button2):
         st.table(df_train.head())
 
-
+@st.cache
+def transform1(df):
+    df['Store']=df['Store'].astype(str)
+    df['Quarter']=df['Quarter'].astype(str)
+    df['Month'] = df['Month'].apply(lambda x: calendar.month_abbr[x])
+    #converting DayOfWeek from number to day name
+    df['DayOfWeek'] = df['DayOfWeek'] -1 #days should be from 0 to 6 in order to use day_abbr method
+    df['DayOfWeek'] = df['DayOfWeek'].apply(lambda x: calendar.day_abbr[x])
+    return df
 
 if option == 'Data Exploration and Visualization':
     if data is not None: #if data is uploaded by the user
         df_train = pd.read_csv(data)
-        df_train['Store']=df_train['Store'].astype(str)
-        df_train['Quarter']=df_train['Quarter'].astype(str)
-        df_train['Month'] = df_train['Month'].apply(lambda x: calendar.month_abbr[x])
-        #converting DayOfWeek from number to day name
-        df_train['DayOfWeek'] = df_train['DayOfWeek'] -1 #days should be from 0 to 6 in order to use day_abbr method
-        df_train['DayOfWeek'] = df_train['DayOfWeek'].apply(lambda x: calendar.day_abbr[x])
+        df_train = transform1(df_train)
+
 
 
     st.markdown("<h1 style='text-align: center'>Sales Exploration & Visualization</h1>", unsafe_allow_html=True)
@@ -121,6 +130,8 @@ if option == 'Data Exploration and Visualization':
     df_year=df_train[df_train['Year']==year] #selecting the data corresponding to the selected year
     report=st.selectbox("Select a Report",("Top Sales Performance","Sales Performance per Store","Customer Visits per Store",
     "Customers & Sales","Store Type & Sales"))
+
+
     if report == "Top Sales Performance" :
         n=st.slider(f'Check the top performing stores in {year}', min_value=1, max_value=25,value=5)
         col1, col2, col3 = st.beta_columns(3)
@@ -236,14 +247,14 @@ if option == 'Data Exploration and Visualization':
                 df_monhtly['to_sort']=df_monhtly['Month'].apply(lambda x:ordered_months.index(x))
                 df_monhtly = df_monhtly.sort_values('to_sort')
                 df_s=df_monhtly[df_monhtly['Store']==s]
-                fig10 = px.scatter(df_s, x='Customers', y="Sales", title=f'Customers vs Sum of Monthly Sales of Store {s} in {year}',trendline="ols",color='Month')
+                fig10 = px.scatter(df_s, x='Customers', y="Sales", title=f'Customers v/s Sum of Monthly Sales of Store {s} in {year}',trendline="ols",color='Month')
                 st.plotly_chart(fig10)
 
             if time == "Quarterly":
                 #quaterly
                 df_quarter=df_year.groupby(['Store','Quarter','Sales'],as_index=False)['Customers'].sum()
                 df_s1=df_quarter[df_quarter['Store']==s]
-                fig11=px.scatter(df_s1,x='Customers', y="Sales",title=f'Customers vs Sum of Quarterly Sales of Store {s} in {year}',trendline="ols",color='Quarter')
+                fig11=px.scatter(df_s1,x='Customers', y="Sales",title=f'Customers v/s Sum of Quarterly Sales of Store {s} in {year}',trendline="ols",color='Quarter')
                 st.plotly_chart(fig11)
 
             if time == "Daily":
@@ -253,7 +264,7 @@ if option == 'Data Exploration and Visualization':
                 df_daily['to_sort']=df_daily['DayOfWeek'].apply(lambda x:ordered_days.index(x))
                 df_daily = df_daily.sort_values('to_sort')
                 df_s2=df_daily[df_daily['Store']==s]
-                fig12=px.scatter(df_s2,x='Customers', y="Sales",title=f'Customers vs Average of Daily Sales of Store {s} in {year}',trendline="ols",color='DayOfWeek')
+                fig12=px.scatter(df_s2,x='Customers', y="Sales",title=f'Customers v/s Average of Daily Sales of Store {s} in {year}',trendline="ols",color='DayOfWeek')
                 st.plotly_chart(fig12)
 
 
@@ -264,7 +275,7 @@ if option == 'Data Exploration and Visualization':
             ordered_stores = ["a", "b", "c", "d"] #writing store types in order since plotly uses alphabetical order
             df_year['to_sort']=df_year['StoreType'].apply(lambda x:ordered_stores.index(x))
             df_year = df_year.sort_values('to_sort')
-            fig13 = px.box(df_year, x="StoreType", y="Sales",title=f"Store Type vs Sales in {year}")
+            fig13 = px.box(df_year, x="StoreType", y="Sales",title=f"Store Type v/s Sales in {year}")
             st.plotly_chart(fig13)
 
         if term == "Quarterly":
@@ -273,7 +284,7 @@ if option == 'Data Exploration and Visualization':
             ordered_stores = ["a", "b", "c", "d"] #writing store types in order since plotly uses alphabetical order
             df_quarter['to_sort']=df_quarter['StoreType'].apply(lambda x:ordered_stores.index(x))
             df_quarter = df_quarter.sort_values('to_sort')
-            fig14 = px.box(df_quarter, x="StoreType", y="Sales",title=f"Store Type vs Sales in Q{quarter} of {year}")
+            fig14 = px.box(df_quarter, x="StoreType", y="Sales",title=f"Store Type v/s Sales in Q{quarter} of {year}")
             st.plotly_chart(fig14)
 
         if term == "Monthly":
@@ -282,9 +293,33 @@ if option == 'Data Exploration and Visualization':
             ordered_stores = ["a", "b", "c", "d"] #writing store types in order since plotly uses alphabetical order
             df_month['to_sort']=df_month['StoreType'].apply(lambda x:ordered_stores.index(x))
             df_month = df_month.sort_values('to_sort')
-            fig15 = px.box(df_month, x="StoreType", y="Sales",title=f"Store Type vs Sales in {month} {year}")
+            fig15 = px.box(df_month, x="StoreType", y="Sales",title=f"Store Type v/s Sales in {month} {year}")
             st.plotly_chart(fig15)
 
+@st.cache
+def clean_fit(df,df1):
+    df['Year'] = pd.DatetimeIndex(df['Date']). year
+    df['Month'] = pd.DatetimeIndex(df['Date']). month
+    df['Quarter']=pd.DatetimeIndex(df['Date']).quarter
+    df=df[df['Year']!=2015]
+    df=df.join(df1.set_index('Store'),on='Store')
+
+    #dropping the unwanted columns
+    df_cleaned=df.drop(['Store','Date','CompetitionOpenSinceMonth','CompetitionOpenSinceYear','Promo2SinceWeek','Promo2SinceYear','PromoInterval','Year','Open','Quarter','StateHoliday','SchoolHoliday'],axis=1)
+    df_cleaned_1=df_cleaned.dropna()
+
+    #getting the features and the target
+    X=pd.get_dummies(df_cleaned_1,drop_first=True)
+    y=X['Sales']
+    X=X.drop(['Sales'],axis=1)
+
+    #splitting the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    #choosing the model and fitting it on the train data
+    model =DecisionTreeRegressor(max_depth= 8,random_state=42)
+    fitted_model=model.fit(X_train, y_train)
+    return fitted_model
 
 if option == 'Sales Prediction':
     st.markdown("<h1 style='text-align: center'>Sales Prediction</h1>", unsafe_allow_html=True)
@@ -301,44 +336,48 @@ if option == 'Sales Prediction':
     path2 = 'https://drive.google.com/uc?export=download&id='+url2.split('/')[-2]
     df_store=load_data(path2)
 
-    df_train['Year'] = pd.DatetimeIndex(df_train['Date']). year
-    df_train['Month'] = pd.DatetimeIndex(df_train['Date']). month
-    df_train['Quarter']=pd.DatetimeIndex(df_train['Date']).quarter
-    df_train=df_train[df_train['Year']!=2015]
-    df_train=df_train.join(df_store.set_index('Store'),on='Store')
+    model=clean_fit(df_train,df_store)
 
-    #dropping the unwanted columns
-    df_cleaned=df_train.drop(['Store','Date','CompetitionOpenSinceMonth','CompetitionOpenSinceYear','Promo2SinceWeek','Promo2SinceYear','PromoInterval','Year','Open','Quarter','StateHoliday','SchoolHoliday'],axis=1)
-    df_cleaned_1=df_cleaned.dropna()
-
-    #getting the features and the target
-    X=pd.get_dummies(df_cleaned_1,drop_first=True)
-    y=X['Sales']
-    X=X.drop(['Sales'],axis=1)
-
-    #splitting the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    #choosing the model and fitting it on the train data
-    model =DecisionTreeRegressor(max_depth= 8,random_state=42)
-    model.fit(X_train, y_train)
+    StoreType_b=StoreType_c=StoreType_d=Assortment_b=Assortment_c=0
 
     #asking the user to input the needed fields
-    DayOfWeek=st.number_input('Enter the Day of the Week from 1 to 7',value=1,min_value=1,max_value=7,step=1)
-    Month=st.number_input('Enter the Month from 1 to 12',value=1,min_value=1,max_value=12,step=1)
-    Customers=st.number_input('Enter the number of customers',value=100,step=1)
-    Promo=st.number_input('Is the store running a promo on this day? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    Promo2=st.number_input('Is there a continuing promotion? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    CompetitionDistance=st.number_input('Enter a distance in meters to the nearest competitor store',value=1000,step=1)
-    StoreType_b=st.number_input('Is it a type b store? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    StoreType_c=st.number_input('Is it a type c store? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    StoreType_d=st.number_input('Is it a type d store? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    Assortment_b=st.number_input('Is it Assortment Level b? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
-    Assortment_c=st.number_input('Is it Assortment Level c? 0=no, 1=yes',value=0,min_value=0,max_value=1,step=1)
+    col1,col2,col3=st.beta_columns(3)
+    DayOfWeek=col1.number_input('Enter the Day of the Week from 1 to 7',value=1,min_value=1,max_value=7,step=1)
+    Month=col2.number_input('Enter the Month from 1 to 12',value=1,min_value=1,max_value=12,step=1)
+    Customers=col3.number_input('Enter the number of customers',value=100,step=1)
 
+    col1,col2,col3=st.beta_columns(3)
+    CompetitionDistance=col1.number_input('Enter a distance in meters to the nearest competitor store',value=1000,step=1)
+    StoreType=col2.selectbox('Select the store type',['a','b','c','d'])
+    if StoreType == 'b':
+        StoreType_b=1
+
+    elif StoreType =='c':
+        StoreType_c=1
+
+    elif StoreType =='d':
+        StoreType_d=1
+
+    AssortmentType=col3.selectbox('Select the assortment type',['a','b','c'])
+    if AssortmentType == 'b':
+        Assortment_b=1
+
+    elif AssortmentType =='c':
+        Assortment_c=1
+
+    col1,col2=st.beta_columns(2)
+    Promo=col1.checkbox('The store is running a promo')
+    Promo2=col2.checkbox('The store is running a continuing promo')
+
+
+    st.write("#")
+    st.write("#")
+
+
+    col1,col2,col3=st.beta_columns(3)
     #predict based on the fitted model
-    predictions = model.predict([[DayOfWeek, Customers, Promo, Month, CompetitionDistance,
-       Promo2, StoreType_b, StoreType_c, StoreType_d, Assortment_b,
-       Assortment_c]])
-    prediction = round(predictions[0],2)
-    st.write(f"The predicted turnover of this store given your input is {prediction} USD")
+    b=col1.button('Predict Store Sales')
+    if (b):
+        predictions = model.predict([[DayOfWeek, Customers, Promo, Month, CompetitionDistance,Promo2, StoreType_b, StoreType_c, StoreType_d, Assortment_b,Assortment_c]])
+        prediction = round(predictions[0],2)
+        st.subheader(f"The predicted turnover of this store given your input is **{prediction}** USD")
