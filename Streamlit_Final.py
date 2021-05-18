@@ -109,6 +109,9 @@ if option == 'Home':
     url = 'https://drive.google.com/file/d/1bHG9kXMAoN20wSvg7xA2hszsBXsY4_ug/view?usp=sharing'
     analytics = 'https://drive.google.com/uc?export=download&id='+url.split('/')[-2]
     st.image(analytics, use_column_width='always')
+
+
+
     st.subheader("Overview")
     st.write("""This webapp aims to analyse and visualize the store sales of Rossmann drug stores during 2013 and 2014.
     It also has the capability of predicting the sales based on predefined parameters.
@@ -116,7 +119,7 @@ if option == 'Home':
 
     st.subheader("Description")
     st.write("The table below shows the sales data of 1115 Rossman Drug Stores during 2013 and 2014")
-    col1,col2=st.beta_columns(2)
+    col1,col2,col3=st.beta_columns([1,1,3])
     button1 = col1.button("View Fields Description")
     if(button1):
         st.table(df_datafields)
